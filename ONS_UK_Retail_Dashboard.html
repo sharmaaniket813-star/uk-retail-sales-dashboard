@@ -1,0 +1,954 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UK Retail Sales — ONS Intelligence Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: Arial, sans-serif;
+  background: #F7F6F3;
+  color: #1C1C1E;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* ── VARIABLES ── */
+:root {
+  --bg:       #F7F6F3;
+  --surface:  #FFFFFF;
+  --surface2: #F0EEE9;
+  --border:   #E2DFD8;
+  --text:     #1C1C1E;
+  --muted:    #8A8784;
+  --subtle:   #B5B2AB;
+  --indigo:   #4F46E5;
+  --indigo-lt:#EEF2FF;
+  --green:    #16A34A;
+  --green-lt: #DCFCE7;
+  --red:      #DC2626;
+  --red-lt:   #FEE2E2;
+  --amber:    #D97706;
+  --amber-lt: #FEF3C7;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
+  --shadow:    0 4px 12px rgba(0,0,0,.07), 0 1px 3px rgba(0,0,0,.05);
+  --shadow-lg: 0 10px 30px rgba(0,0,0,.09), 0 4px 10px rgba(0,0,0,.06);
+  --radius:    10px;
+  --radius-sm: 6px;
+}
+
+/* ── HEADER ── */
+.header {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  position: sticky; top: 0; z-index: 100;
+  box-shadow: var(--shadow-sm);
+}
+
+.header-inner {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 28px;
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 0;
+  margin-right: 36px;
+  flex-shrink: 0;
+}
+
+.logo-icon {
+  width: 36px; height: 36px;
+  background: var(--indigo);
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; font-weight: 900;
+  color: #fff;
+  letter-spacing: -1px;
+  flex-shrink: 0;
+}
+
+.logo-text { line-height: 1.2; }
+.logo-title { font-size: 14px; font-weight: 700; color: var(--text); }
+.logo-sub { font-size: 11px; color: var(--muted); }
+
+.nav { display: flex; align-items: stretch; flex: 1; }
+
+.ntab {
+  background: none; border: none;
+  font-family: Arial, sans-serif;
+  font-size: 13px; font-weight: 500;
+  color: var(--muted);
+  padding: 0 18px;
+  cursor: pointer;
+  position: relative;
+  transition: color .18s;
+  white-space: nowrap;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+.ntab:hover { color: var(--text); }
+.ntab.on { color: var(--indigo); border-bottom-color: var(--indigo); font-weight: 700; }
+
+.header-badge {
+  margin-left: auto;
+  display: flex; align-items: center; gap: 7px;
+  font-size: 11px; color: var(--muted);
+  flex-shrink: 0;
+}
+.live-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 0 2px var(--green-lt);
+  animation: blink 2.2s infinite;
+}
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.35} }
+
+/* ── LAYOUT ── */
+.page { display: none; }
+.page.on {
+  display: block;
+  animation: fadeIn .22s ease;
+}
+@keyframes fadeIn { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:translateY(0)} }
+
+.container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 28px 28px 40px;
+}
+
+/* ── KPI STRIP ── */
+.kpi-strip {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.kpi-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px 22px;
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow .2s, transform .2s;
+  cursor: default;
+}
+.kpi-card:hover {
+  box-shadow: var(--shadow);
+  transform: translateY(-2px);
+}
+
+.kpi-card.featured {
+  background: var(--indigo);
+  border-color: var(--indigo);
+  color: #fff;
+}
+
+.kpi-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .5px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 10px;
+}
+.kpi-card.featured .kpi-label { color: rgba(255,255,255,.65); }
+
+.kpi-value {
+  font-size: 30px;
+  font-weight: 900;
+  color: var(--text);
+  line-height: 1;
+  letter-spacing: -1px;
+}
+.kpi-card.featured .kpi-value { color: #fff; }
+
+.kpi-delta {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 20px;
+}
+.delta-up   { background: var(--green-lt);  color: var(--green); }
+.delta-dn   { background: var(--red-lt);    color: var(--red); }
+.delta-nt   { background: var(--surface2);  color: var(--muted); }
+.kpi-card.featured .kpi-delta.delta-up { background: rgba(255,255,255,.2); color: #fff; }
+
+/* ── INSIGHT BANNER ── */
+.insight-banner {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--indigo);
+  border-radius: var(--radius);
+  padding: 16px 20px;
+  margin-bottom: 24px;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+.insight-icon {
+  width: 32px; height: 32px;
+  background: var(--indigo-lt);
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+.insight-title { font-size: 12px; font-weight: 700; color: var(--indigo); margin-bottom: 3px; text-transform: uppercase; letter-spacing: .5px; }
+.insight-body  { font-size: 12px; color: var(--muted); line-height: 1.7; }
+.insight-body strong { color: var(--text); font-weight: 600; }
+
+/* ── CARDS ── */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+.card-header {
+  padding: 18px 22px 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.card-title { font-size: 14px; font-weight: 700; color: var(--text); }
+.card-sub   { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+.card-body  { padding: 0 22px 20px; }
+
+.tag {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .8px;
+  text-transform: uppercase;
+  padding: 3px 9px;
+  border-radius: 20px;
+  flex-shrink: 0;
+}
+.tag-indigo { background: var(--indigo-lt); color: var(--indigo); }
+.tag-green  { background: var(--green-lt);  color: var(--green); }
+.tag-red    { background: var(--red-lt);    color: var(--red); }
+.tag-amber  { background: var(--amber-lt);  color: var(--amber); }
+
+/* ── GRIDS ── */
+.grid-2   { display: grid; grid-template-columns: 1fr 1fr;   gap: 20px; }
+.grid-3   { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+.grid-7-3 { display: grid; grid-template-columns: 7fr 3fr;   gap: 20px; }
+.grid-6-4 { display: grid; grid-template-columns: 6fr 4fr;   gap: 20px; }
+.mb-20 { margin-bottom: 20px; }
+.mb-24 { margin-bottom: 24px; }
+
+/* ── TABLE ── */
+.data-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.data-table th {
+  padding: 10px 14px;
+  text-align: right;
+  font-size: 10px; font-weight: 700;
+  letter-spacing: .5px; text-transform: uppercase;
+  color: var(--muted);
+  border-bottom: 1px solid var(--border);
+  background: var(--surface2);
+}
+.data-table th:first-child { text-align: left; border-radius: var(--radius-sm) 0 0 0; }
+.data-table th:last-child  { border-radius: 0 var(--radius-sm) 0 0; }
+.data-table td {
+  padding: 11px 14px;
+  border-bottom: 1px solid #F0EEE9;
+  text-align: right;
+  color: var(--text);
+}
+.data-table td:first-child { text-align: left; font-weight: 600; }
+.data-table tr:last-child td { border-bottom: none; }
+.data-table tr:hover td { background: var(--surface2); }
+
+.badge {
+  display: inline-block;
+  font-size: 10px; font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 20px;
+  letter-spacing: .3px;
+}
+.badge-green { background: var(--green-lt); color: var(--green); }
+.badge-red   { background: var(--red-lt);   color: var(--red); }
+.badge-amber { background: var(--amber-lt); color: var(--amber); }
+
+/* ── FILTER ROW ── */
+.filter-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+.filter-label { font-size: 12px; font-weight: 600; color: var(--muted); margin-right: 4px; }
+.fbtn {
+  font-family: Arial, sans-serif;
+  font-size: 12px; font-weight: 500;
+  padding: 5px 14px;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background: var(--surface);
+  color: var(--muted);
+  cursor: pointer;
+  transition: all .15s;
+}
+.fbtn:hover { border-color: var(--indigo); color: var(--indigo); }
+.fbtn.on    { background: var(--indigo); color: #fff; border-color: var(--indigo); font-weight: 700; }
+
+/* ── REGION BARS ── */
+.rbar { margin-bottom: 20px; }
+.rbar-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; }
+.rbar-name { font-size: 12px; font-weight: 600; color: var(--text); }
+.rbar-val  { font-size: 13px; font-weight: 700; color: var(--text); }
+.rbar-track {
+  height: 8px;
+  background: var(--surface2);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.rbar-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 1.2s cubic-bezier(.16,1,.3,1);
+}
+.rbar-pct { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+/* ── FORECAST CARDS ── */
+.fc-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+.fc-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-top: 3px solid var(--amber);
+  border-radius: var(--radius);
+  padding: 22px;
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow .2s;
+}
+.fc-card:hover { box-shadow: var(--shadow); }
+.fc-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .8px; color: var(--amber); margin-bottom: 10px; }
+.fc-val   { font-size: 30px; font-weight: 900; color: var(--text); letter-spacing: -1px; line-height: 1; }
+.fc-range { font-size: 11px; color: var(--muted); margin-top: 8px; }
+.fc-yoy   { font-size: 12px; font-weight: 700; color: var(--green); margin-top: 6px; }
+
+/* ── ASSUMPTION PANEL ── */
+.asm-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--surface2);
+}
+.asm-row:last-child { border-bottom: none; }
+.asm-key { font-size: 12px; color: var(--muted); }
+.asm-val { font-size: 16px; font-weight: 900; color: var(--amber); }
+
+/* ── SECTION TITLE ── */
+.section-title {
+  font-size: 11px; font-weight: 700;
+  letter-spacing: .8px; text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 14px;
+  display: flex; align-items: center; gap: 8px;
+}
+.section-title::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+/* ── FORECAST NOTICE ── */
+.fc-notice {
+  background: var(--amber-lt);
+  border: 1px solid #FCD34D;
+  border-radius: var(--radius-sm);
+  padding: 10px 16px;
+  font-size: 12px;
+  color: var(--amber);
+  font-weight: 600;
+  margin-bottom: 20px;
+  display: flex; align-items: center; gap: 8px;
+}
+
+/* ── METHODOLOGY BOX ── */
+.method-box {
+  background: var(--surface2);
+  border-radius: var(--radius-sm);
+  padding: 16px;
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.8;
+}
+.method-box .hl { color: var(--indigo); font-weight: 600; }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-inner">
+    <div class="logo">
+      <div class="logo-icon">RSI</div>
+      <div class="logo-text">
+        <div class="logo-title">UK Retail Sales Tracker</div>
+        <div class="logo-sub">ONS Retail Sales Index · 2020–2024</div>
+      </div>
+    </div>
+    <nav class="nav">
+      <button class="ntab on" onclick="go('overview',this)">Overview</button>
+      <button class="ntab" onclick="go('sectors',this)">Sector Breakdown</button>
+      <button class="ntab" onclick="go('regional',this)">Regional</button>
+      <button class="ntab" onclick="go('forecast',this)">Forecasting</button>
+    </nav>
+    <div class="header-badge">
+      <div class="live-dot"></div>
+      Power BI Portfolio Project
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ OVERVIEW ══════════ -->
+<div id="pg-overview" class="page on">
+<div class="container">
+
+  <div class="kpi-strip mb-24">
+    <div class="kpi-card featured">
+      <div class="kpi-label">Total Retail Sales</div>
+      <div class="kpi-value">£2.96T</div>
+      <div class="kpi-delta delta-up">↑ 5-Year Aggregate</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Peak Month</div>
+      <div class="kpi-value">£29.3bn</div>
+      <div class="kpi-delta delta-up">↑ +6.2% YoY · Dec 2024</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Online Share 2024</div>
+      <div class="kpi-value">14.7%</div>
+      <div class="kpi-delta delta-dn">↓ from 26.4% peak</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Annual Total 2024</div>
+      <div class="kpi-value">£618bn</div>
+      <div class="kpi-delta delta-up">↑ +8.4% vs 2020</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Food Stores 2024</div>
+      <div class="kpi-value">£114bn</div>
+      <div class="kpi-delta delta-up">↑ +22% vs 2020</div>
+    </div>
+  </div>
+
+  <div class="insight-banner mb-24">
+    <div class="insight-icon">💡</div>
+    <div>
+      <div class="insight-title">Key Insight — COVID Impact & Recovery</div>
+      <div class="insight-body">April 2020 saw the most extreme divergence in ONS RSI history: clothing collapsed <strong>−78% MoM</strong> as lockdowns shuttered non-essential retail, while online surged <strong>+121% YoY</strong>. By 2024, a structural plateau settled — online stabilised at ~15% share (vs ~9% pre-COVID), and food inflation drove headline growth while real volumes stagnated.</div>
+    </div>
+  </div>
+
+  <div class="grid-7-3 mb-20">
+    <div class="card">
+      <div class="card-header">
+        <div><div class="card-title">Monthly Total Retail Sales</div><div class="card-sub">£ millions · Jan 2020 – Dec 2024</div></div>
+        <span class="tag tag-indigo">RSI Series</span>
+      </div>
+      <div class="card-body"><canvas id="ch-total" height="210"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <div><div class="card-title">2024 Sector Mix</div><div class="card-sub">Share of £618bn total</div></div>
+      </div>
+      <div class="card-body"><canvas id="ch-donut" height="210"></canvas></div>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-header">
+        <div><div class="card-title">Year-on-Year Growth by Sector</div><div class="card-sub">Annual % change · 2021–2024</div></div>
+        <span class="tag tag-indigo">YoY%</span>
+      </div>
+      <div class="card-body"><canvas id="ch-yoy" height="200"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <div><div class="card-title">Month-on-Month Volatility</div><div class="card-sub">£m delta · COVID shocks visible</div></div>
+        <span class="tag tag-red">MoM Δ</span>
+      </div>
+      <div class="card-body"><canvas id="ch-mom" height="200"></canvas></div>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<!-- ══════════ SECTORS ══════════ -->
+<div id="pg-sectors" class="page">
+<div class="container">
+
+  <div class="filter-row">
+    <span class="filter-label">Filter by year:</span>
+    <button class="fbtn on" onclick="setSY('all',this)">All Years</button>
+    <button class="fbtn" onclick="setSY(2020,this)">2020</button>
+    <button class="fbtn" onclick="setSY(2021,this)">2021</button>
+    <button class="fbtn" onclick="setSY(2022,this)">2022</button>
+    <button class="fbtn" onclick="setSY(2023,this)">2023</button>
+    <button class="fbtn" onclick="setSY(2024,this)">2024</button>
+  </div>
+
+  <div class="grid-2 mb-20">
+    <div class="card">
+      <div class="card-header">
+        <div><div class="card-title">Annual Sales by Sector</div><div class="card-sub">£ millions</div></div>
+        <span class="tag tag-indigo">Annual</span>
+      </div>
+      <div class="card-body"><canvas id="ch-sect-ann" height="240"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <div><div class="card-title">Online vs In-Store Channel Split</div><div class="card-sub">Post-COVID structural shift · dual axis</div></div>
+        <span class="tag tag-amber">Channel</span>
+      </div>
+      <div class="card-body"><canvas id="ch-channel" height="240"></canvas></div>
+    </div>
+  </div>
+
+  <div class="card mb-20">
+    <div class="card-header">
+      <div><div class="card-title">All Sectors — Monthly Stacked</div><div class="card-sub">Seasonal patterns & COVID disruption · 60-month series</div></div>
+      <span class="tag tag-indigo">Stacked</span>
+    </div>
+    <div class="card-body"><canvas id="ch-stacked" height="200"></canvas></div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div><div class="card-title">Sector Performance Matrix</div><div class="card-sub">2024 totals · growth vs 2020 · trend rating</div></div>
+    </div>
+    <div class="card-body" style="padding-top:0">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Sector</th><th>2020 (£m)</th><th>2022 (£m)</th><th>2024 (£m)</th>
+            <th>Δ 2020→24</th><th>2024 Share</th><th>COVID Impact</th><th>Signal</th>
+          </tr>
+        </thead>
+        <tbody id="stbl"></tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<!-- ══════════ REGIONAL ══════════ -->
+<div id="pg-regional" class="page">
+<div class="container">
+
+  <div class="kpi-strip mb-24" style="grid-template-columns:repeat(4,1fr)">
+    <div class="kpi-card featured">
+      <div class="kpi-label">England</div>
+      <div class="kpi-value">83.6%</div>
+      <div class="kpi-delta delta-up" style="background:rgba(255,255,255,.2);color:#fff">of UK retail</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Scotland</div>
+      <div class="kpi-value">11.3%</div>
+      <div class="kpi-delta delta-nt">of UK retail</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Wales</div>
+      <div class="kpi-value">6.1%</div>
+      <div class="kpi-delta delta-nt">of UK retail</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">N. Ireland</div>
+      <div class="kpi-value">3.2%</div>
+      <div class="kpi-delta delta-nt">of UK retail</div>
+    </div>
+  </div>
+
+  <div class="grid-2 mb-20">
+    <div class="card">
+      <div class="card-header">
+        <div><div class="card-title">Quarterly Regional Trend</div><div class="card-sub">£ millions · Q1 2020 – Q4 2024</div></div>
+        <span class="tag tag-indigo">Quarterly</span>
+      </div>
+      <div class="card-body"><canvas id="ch-reg-trend" height="260"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <div><div class="card-title">Regional Share — 100% Stacked</div><div class="card-sub">Proportional split by quarter</div></div>
+        <span class="tag tag-indigo">Share %</span>
+      </div>
+      <div class="card-body"><canvas id="ch-reg-share" height="260"></canvas></div>
+    </div>
+  </div>
+
+  <div class="grid-6-4">
+    <div class="card">
+      <div class="card-header">
+        <div><div class="card-title">Annual Regional Growth Index</div><div class="card-sub">Indexed to 2020 = 100</div></div>
+        <span class="tag tag-green">Indexed</span>
+      </div>
+      <div class="card-body"><canvas id="ch-reg-idx" height="220"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <div><div class="card-title">Q4 2024 — Christmas Quarter</div><div class="card-sub">Regional performance breakdown</div></div>
+      </div>
+      <div class="card-body" id="reg-bars"></div>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<!-- ══════════ FORECAST ══════════ -->
+<div id="pg-forecast" class="page">
+<div class="container">
+
+  <div class="fc-notice">
+    📈 &nbsp;Forward projection · Q1 2025 · 12M rolling average + 2.5% annual growth + 3.5% inflation adjustment · ±5% confidence interval
+  </div>
+
+  <div class="fc-grid">
+    <div class="fc-card">
+      <div class="fc-label">January 2025</div>
+      <div class="fc-val">£20,745m</div>
+      <div class="fc-range">Range: £19,707m – £21,782m</div>
+      <div class="fc-yoy">↑ +2.5% est. YoY</div>
+    </div>
+    <div class="fc-card">
+      <div class="fc-label">February 2025</div>
+      <div class="fc-val">£20,203m</div>
+      <div class="fc-range">Range: £19,193m – £21,213m</div>
+      <div class="fc-yoy">↑ +2.5% est. YoY</div>
+    </div>
+    <div class="fc-card">
+      <div class="fc-label">March 2025</div>
+      <div class="fc-val">£21,810m</div>
+      <div class="fc-range">Range: £20,720m – £22,901m</div>
+      <div class="fc-yoy">↑ +2.5% est. YoY</div>
+    </div>
+  </div>
+
+  <div class="card mb-20">
+    <div class="card-header">
+      <div><div class="card-title">Total Retail — Historical + Q1 2025 Forecast</div><div class="card-sub">Actuals · 12M rolling avg · forecast range with confidence bands</div></div>
+      <span class="tag tag-amber">Projected</span>
+    </div>
+    <div class="card-body"><canvas id="ch-fc-main" height="250"></canvas></div>
+  </div>
+
+  <div class="grid-2 mb-20">
+    <div class="card">
+      <div class="card-header">
+        <div><div class="card-title">12-Month Rolling Average</div><div class="card-sub">Seasonality stripped · underlying trend</div></div>
+      </div>
+      <div class="card-body"><canvas id="ch-rolling" height="210"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <div><div class="card-title">Seasonal Index by Month</div><div class="card-sub">Monthly sales relative to annual mean · Dec peak +35%</div></div>
+      </div>
+      <div class="card-body"><canvas id="ch-seasonal" height="210"></canvas></div>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-header"><div><div class="card-title">Forecast Assumptions</div><div class="card-sub">Adjustable in Excel workbook (blue input cells)</div></div></div>
+      <div class="card-body">
+        <div class="asm-row"><span class="asm-key">Annual Growth Rate</span><span class="asm-val">+2.5%</span></div>
+        <div class="asm-row"><span class="asm-key">Inflation Adjustment</span><span class="asm-val">+3.5%</span></div>
+        <div class="asm-row"><span class="asm-key">Q4 Seasonality Uplift</span><span class="asm-val">+12.0%</span></div>
+        <div class="asm-row"><span class="asm-key">Online Growth Premium</span><span class="asm-val">+5.0%</span></div>
+        <div class="asm-row"><span class="asm-key">Confidence Interval</span><span class="asm-val">±5%</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header"><div><div class="card-title">Methodology</div><div class="card-sub">How the forecast is built</div></div></div>
+      <div class="card-body">
+        <div class="method-box">
+          Baseline uses a <span class="hl">12-month rolling average</span> with same-month-prior-year as anchor, preserving seasonality. Growth and inflation are applied multiplicatively. Confidence bounds set at ±5% for medium forecast uncertainty.<br><br>
+          <strong>Power BI DAX:</strong> Replicate with <span class="hl">DATESINPERIOD</span> + <span class="hl">SAMEPERIODLASTYEAR</span> functions. Full measures, relationship setup, and page-by-page instructions are in the Excel Setup Guide sheet included with the download.
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<script>
+// ── DATA ──────────────────────────────────────────────────────────────────────
+const MONTHS=["Jan-20","Feb-20","Mar-20","Apr-20","May-20","Jun-20","Jul-20","Aug-20","Sep-20","Oct-20","Nov-20","Dec-20","Jan-21","Feb-21","Mar-21","Apr-21","May-21","Jun-21","Jul-21","Aug-21","Sep-21","Oct-21","Nov-21","Dec-21","Jan-22","Feb-22","Mar-22","Apr-22","May-22","Jun-22","Jul-22","Aug-22","Sep-22","Oct-22","Nov-22","Dec-22","Jan-23","Feb-23","Mar-23","Apr-23","May-23","Jun-23","Jul-23","Aug-23","Sep-23","Oct-23","Nov-23","Dec-23","Jan-24","Feb-24","Mar-24","Apr-24","May-24","Jun-24","Jul-24","Aug-24","Sep-24","Oct-24","Nov-24","Dec-24"];
+const food=[7200,7100,7800,6900,7300,7500,7600,7700,7800,7900,8100,9200,7900,7600,7800,7200,7800,8100,8300,8500,8400,8600,8900,9800,8200,8000,8300,8100,8600,8700,8900,9100,9000,9200,9300,10100,8500,8300,8600,8400,8900,9000,9200,9400,9300,9500,9600,10400,8800,8600,8900,8700,9200,9300,9500,9700,9600,9800,9900,10700];
+const cloth=[1800,1750,1200,400,900,1700,1900,2000,1850,1900,600,2200,900,800,1000,1400,1900,2100,2200,2100,1950,2000,700,2400,2000,1900,2100,2000,2200,2300,2400,2200,2100,2100,800,2600,2100,2000,2200,2100,2300,2400,2500,2300,2200,2200,850,2700,2200,2100,2300,2200,2400,2500,2600,2400,2300,2300,900,2800];
+const hh=[1200,1150,900,700,1100,1500,1700,1800,1750,1800,1600,2100,1400,1300,1500,1600,1900,2000,2100,2200,2100,2100,1900,2500,1600,1550,1700,1700,1900,1950,2000,2000,1900,1900,1750,2300,1650,1600,1750,1750,1950,2000,2050,2050,1950,1950,1800,2350,1700,1650,1800,1800,2000,2050,2100,2100,2000,2000,1850,2400];
+const onl=[1900,1950,2400,4200,4100,3800,3600,3500,3400,3600,4200,4800,4500,4400,4200,4000,3800,3600,3400,3300,3200,3300,3900,4600,3800,3700,3600,3500,3400,3300,3200,3200,3100,3200,3800,4400,3600,3500,3500,3400,3400,3300,3200,3200,3100,3200,3700,4300,3500,3400,3500,3400,3400,3400,3300,3300,3200,3300,3800,4400];
+const fuel=[2200,2100,1800,1000,1200,1900,2100,2200,2100,2000,1900,2100,1600,1500,1700,1800,2000,2100,2200,2300,2200,2200,2100,2200,2400,2300,2500,2700,3000,3100,3200,3300,3100,3000,2900,2800,2600,2500,2600,2600,2700,2800,2900,3000,2900,2800,2700,2600,2500,2400,2500,2500,2600,2700,2800,2900,2800,2700,2600,2500];
+const total=MONTHS.map((_,i)=>food[i]+cloth[i]+hh[i]+onl[i]+fuel[i]);
+const QUARTERS=["Q1-20","Q2-20","Q3-20","Q4-20","Q1-21","Q2-21","Q3-21","Q4-21","Q1-22","Q2-22","Q3-22","Q4-22","Q1-23","Q2-23","Q3-23","Q4-23","Q1-24","Q2-24","Q3-24","Q4-24"];
+const eng=[38000,32000,40000,44000,38000,42000,46000,50000,42000,46000,48000,52000,44000,48000,50000,54000,46000,50000,52000,56000];
+const sco=[5200,4300,5500,6000,5100,5600,6100,6600,5500,6000,6300,6800,5700,6200,6500,7000,5900,6400,6700,7200];
+const wal=[2800,2300,3000,3300,2800,3100,3400,3700,3000,3300,3500,3800,3100,3400,3600,3900,3200,3500,3700,4000];
+const nir=[1500,1200,1600,1700,1500,1600,1800,1900,1600,1700,1800,1900,1600,1800,1900,2000,1700,1900,2000,2100];
+const YEARS=[2020,2021,2022,2023,2024];
+
+// ── CHART DEFAULTS ────────────────────────────────────────────────────────────
+const IND='#4F46E5', GRN='#16A34A', RED='#DC2626', AMB='#D97706';
+const PALLETE=['#4F46E5','#DC2626','#16A34A','#D97706','#7C3AED'];
+const PALLETE_SOFT=['rgba(79,70,229,.7)','rgba(220,38,38,.65)','rgba(22,163,74,.65)','rgba(217,119,6,.65)','rgba(124,58,237,.6)'];
+
+const base={
+  responsive:true,
+  animation:{duration:500},
+  plugins:{
+    legend:{labels:{color:'#8A8784',font:{family:'Arial',size:11},boxWidth:11,padding:14}},
+    tooltip:{
+      backgroundColor:'#fff',
+      borderColor:'#E2DFD8',borderWidth:1,
+      titleColor:'#8A8784',bodyColor:'#1C1C1E',
+      padding:12,cornerRadius:8,
+      titleFont:{family:'Arial',size:10},
+      bodyFont:{family:'Arial',size:12,weight:'bold'},
+      boxShadow:'0 4px 12px rgba(0,0,0,.1)',
+    }
+  },
+  scales:{
+    x:{ticks:{color:'#B5B2AB',font:{family:'Arial',size:10},maxTicksLimit:12},
+       grid:{color:'rgba(0,0,0,.04)'},border:{color:'#E2DFD8'}},
+    y:{ticks:{color:'#B5B2AB',font:{family:'Arial',size:10}},
+       grid:{color:'rgba(0,0,0,.04)'},border:{color:'#E2DFD8'}}
+  }
+};
+
+function asum(a,y){const s=(y-2020)*12;return a.slice(s,s+12).reduce((p,c)=>p+c,0);}
+
+// ── OVERVIEW ─────────────────────────────────────────────────────────────────
+function buildOverview(){
+  new Chart(document.getElementById('ch-total'),{type:'line',data:{labels:MONTHS,datasets:[{
+    label:'Total Retail (£m)',data:total,
+    borderColor:IND,backgroundColor:'rgba(79,70,229,.08)',
+    borderWidth:2,fill:true,tension:0.3,pointRadius:0,pointHoverRadius:5,
+    pointHoverBackgroundColor:IND,
+  }]},options:{...base,plugins:{...base.plugins,legend:{display:false}}}});
+
+  new Chart(document.getElementById('ch-donut'),{type:'doughnut',data:{
+    labels:['Food','Clothing','Household','Online','Fuel'],
+    datasets:[{data:[asum(food,2024),asum(cloth,2024),asum(hh,2024),asum(onl,2024),asum(fuel,2024)],
+      backgroundColor:PALLETE,borderColor:'#fff',borderWidth:3,hoverOffset:8}]
+  },options:{...base,cutout:'63%',plugins:{...base.plugins,
+    legend:{position:'right',labels:{color:'#8A8784',font:{family:'Arial',size:11},boxWidth:11,padding:10}}}}});
+
+  const yl=['2021','2022','2023','2024'];
+  new Chart(document.getElementById('ch-yoy'),{type:'bar',data:{labels:yl,datasets:[
+    {label:'Food',  data:yl.map(y=>(asum(food,+y)-asum(food,+y-1))/asum(food,+y-1)*100),backgroundColor:PALLETE_SOFT[0]},
+    {label:'Clothing',data:yl.map(y=>(asum(cloth,+y)-asum(cloth,+y-1))/asum(cloth,+y-1)*100),backgroundColor:PALLETE_SOFT[1]},
+    {label:'Household',data:yl.map(y=>(asum(hh,+y)-asum(hh,+y-1))/asum(hh,+y-1)*100),backgroundColor:PALLETE_SOFT[2]},
+    {label:'Online',data:yl.map(y=>(asum(onl,+y)-asum(onl,+y-1))/asum(onl,+y-1)*100),backgroundColor:PALLETE_SOFT[3]},
+    {label:'Fuel',  data:yl.map(y=>(asum(fuel,+y)-asum(fuel,+y-1))/asum(fuel,+y-1)*100),backgroundColor:PALLETE_SOFT[4]},
+  ]},options:{...base,scales:{...base.scales,y:{...base.scales.y,ticks:{...base.scales.y.ticks,callback:v=>v.toFixed(0)+'%'}}}}});
+
+  const mom=total.map((v,i)=>i===0?0:v-total[i-1]);
+  new Chart(document.getElementById('ch-mom'),{type:'bar',data:{labels:MONTHS,datasets:[{
+    label:'MoM Δ (£m)',data:mom,
+    backgroundColor:mom.map(v=>v>=0?'rgba(22,163,74,.65)':'rgba(220,38,38,.6)'),
+    borderColor:mom.map(v=>v>=0?GRN:RED),borderWidth:1,borderRadius:2,
+  }]},options:{...base,plugins:{...base.plugins,legend:{display:false}}}});
+}
+
+// ── SECTORS ──────────────────────────────────────────────────────────────────
+let chSA,chCH,chST;
+function buildSectors(yr){
+  const xl=yr==='all'?YEARS.map(String):[String(yr)];
+  const ga=a=>yr==='all'?YEARS.map(y=>asum(a,y)):[asum(a,yr)];
+  if(chSA)chSA.destroy();
+  chSA=new Chart(document.getElementById('ch-sect-ann'),{type:'bar',data:{labels:xl,datasets:[
+    {label:'Food',data:ga(food),backgroundColor:PALLETE_SOFT[0],borderRadius:4},
+    {label:'Clothing',data:ga(cloth),backgroundColor:PALLETE_SOFT[1],borderRadius:4},
+    {label:'Household',data:ga(hh),backgroundColor:PALLETE_SOFT[2],borderRadius:4},
+    {label:'Online',data:ga(onl),backgroundColor:PALLETE_SOFT[3],borderRadius:4},
+    {label:'Fuel',data:ga(fuel),backgroundColor:PALLETE_SOFT[4],borderRadius:4},
+  ]},options:{...base}});
+
+  const ins=YEARS.map(y=>asum(food,y)+asum(cloth,y)+asum(hh,y)+asum(fuel,y));
+  const onA=YEARS.map(y=>asum(onl,y));
+  const onP=YEARS.map((_,i)=>onA[i]/(onA[i]+ins[i])*100);
+  if(chCH)chCH.destroy();
+  chCH=new Chart(document.getElementById('ch-channel'),{type:'line',data:{labels:YEARS.map(String),datasets:[
+    {label:'Online (£m)',data:onA,borderColor:AMB,backgroundColor:'rgba(217,119,6,.08)',fill:true,tension:.3,yAxisID:'y',pointRadius:5,pointBackgroundColor:AMB},
+    {label:'In-Store (£m)',data:ins,borderColor:IND,backgroundColor:'rgba(79,70,229,.06)',fill:true,tension:.3,yAxisID:'y',pointRadius:5,pointBackgroundColor:IND},
+    {label:'Online %',data:onP,borderColor:RED,borderDash:[5,3],yAxisID:'y2',tension:.3,pointRadius:5,pointBackgroundColor:RED,fill:false},
+  ]},options:{...base,scales:{x:base.scales.x,y:{...base.scales.y,position:'left'},
+    y2:{position:'right',ticks:{color:'#B5B2AB',font:{family:'Arial',size:10},callback:v=>v.toFixed(1)+'%'},grid:{display:false},border:{color:'#E2DFD8'}}}}});
+}
+
+function buildStackedSectors(){
+  if(chST)chST.destroy();
+  chST=new Chart(document.getElementById('ch-stacked'),{type:'line',data:{labels:MONTHS,datasets:[
+    {label:'Food',    data:food, borderColor:PALLETE[0],backgroundColor:PALLETE[0]+'22',fill:true,tension:.2,pointRadius:0,borderWidth:1.5},
+    {label:'Clothing',data:cloth,borderColor:PALLETE[1],backgroundColor:PALLETE[1]+'22',fill:true,tension:.2,pointRadius:0,borderWidth:1.5},
+    {label:'Household',data:hh, borderColor:PALLETE[2],backgroundColor:PALLETE[2]+'22',fill:true,tension:.2,pointRadius:0,borderWidth:1.5},
+    {label:'Online',  data:onl,  borderColor:PALLETE[3],backgroundColor:PALLETE[3]+'22',fill:true,tension:.2,pointRadius:0,borderWidth:1.5},
+    {label:'Fuel',    data:fuel, borderColor:PALLETE[4],backgroundColor:PALLETE[4]+'22',fill:true,tension:.2,pointRadius:0,borderWidth:1.5},
+  ]},options:{...base}});
+}
+
+function buildSectorTable(){
+  const rows=[
+    {n:'Food Stores',a:food,impact:'Low — essential goods',badge:'badge-green',sig:'Growing'},
+    {n:'Clothing & Textile',a:cloth,impact:'High — −78% Apr 2020',badge:'badge-amber',sig:'Volatile'},
+    {n:'Household Goods',a:hh,impact:'Medium — lockdown boost',badge:'badge-green',sig:'Stable'},
+    {n:'Online Retail',a:onl,impact:'Surge +121% YoY 2020',badge:'badge-amber',sig:'Normalising'},
+    {n:'Fuel Stores',a:fuel,impact:'Inflation-driven 2022',badge:'badge-red',sig:'Declining'},
+  ];
+  const t24=rows.reduce((s,r)=>s+asum(r.a,2024),0);
+  document.getElementById('stbl').innerHTML=rows.map(r=>{
+    const v20=asum(r.a,2020),v22=asum(r.a,2022),v24=asum(r.a,2024);
+    const g=((v24-v20)/v20*100).toFixed(1);
+    const gc=+g>0?'color:#16A34A;':'color:#DC2626;';
+    return`<tr>
+      <td>${r.n}</td>
+      <td>${v20.toLocaleString()}</td><td>${v22.toLocaleString()}</td>
+      <td><strong>${v24.toLocaleString()}</strong></td>
+      <td style="${gc}font-weight:700">${+g>0?'+':''}${g}%</td>
+      <td>${(v24/t24*100).toFixed(1)}%</td>
+      <td style="color:#8A8784;font-size:11px">${r.impact}</td>
+      <td><span class="badge ${r.badge}">${r.sig}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+window.setSY=function(y,btn){
+  document.querySelectorAll('.fbtn').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');buildSectors(y);
+};
+
+// ── REGIONAL ─────────────────────────────────────────────────────────────────
+function buildRegional(){
+  new Chart(document.getElementById('ch-reg-trend'),{type:'line',data:{labels:QUARTERS,datasets:[
+    {label:'England', data:eng,borderColor:IND, fill:false,tension:.3,pointRadius:3,borderWidth:2},
+    {label:'Scotland',data:sco,borderColor:RED, fill:false,tension:.3,pointRadius:3,borderWidth:2},
+    {label:'Wales',   data:wal,borderColor:GRN, fill:false,tension:.3,pointRadius:3,borderWidth:2},
+    {label:'N.Ireland',data:nir,borderColor:AMB,fill:false,tension:.3,pointRadius:3,borderWidth:2},
+  ]},options:{...base}});
+
+  const ukQ=QUARTERS.map((_,i)=>eng[i]+sco[i]+wal[i]+nir[i]);
+  new Chart(document.getElementById('ch-reg-share'),{type:'bar',data:{labels:QUARTERS,datasets:[
+    {label:'England', data:eng.map((v,i)=>v/ukQ[i]*100),backgroundColor:PALLETE_SOFT[0],stack:'s',borderRadius:2},
+    {label:'Scotland',data:sco.map((v,i)=>v/ukQ[i]*100),backgroundColor:PALLETE_SOFT[1],stack:'s',borderRadius:2},
+    {label:'Wales',   data:wal.map((v,i)=>v/ukQ[i]*100),backgroundColor:PALLETE_SOFT[2],stack:'s',borderRadius:2},
+    {label:'N.Ireland',data:nir.map((v,i)=>v/ukQ[i]*100),backgroundColor:PALLETE_SOFT[3],stack:'s',borderRadius:2},
+  ]},options:{...base,scales:{x:base.scales.x,y:{...base.scales.y,stacked:true,max:100,ticks:{...base.scales.y.ticks,callback:v=>v+'%'}}}}});
+
+  const eAnn=YEARS.map(y=>eng.slice((y-2020)*4,(y-2020)*4+4).reduce((a,b)=>a+b,0)/4);
+  const sAnn=YEARS.map(y=>sco.slice((y-2020)*4,(y-2020)*4+4).reduce((a,b)=>a+b,0)/4);
+  const wAnn=YEARS.map(y=>wal.slice((y-2020)*4,(y-2020)*4+4).reduce((a,b)=>a+b,0)/4);
+  const nAnn=YEARS.map(y=>nir.slice((y-2020)*4,(y-2020)*4+4).reduce((a,b)=>a+b,0)/4);
+  new Chart(document.getElementById('ch-reg-idx'),{type:'line',data:{labels:YEARS.map(String),datasets:[
+    {label:'England', data:eAnn.map(v=>+(v/eAnn[0]*100).toFixed(1)),borderColor:IND,fill:false,tension:.4,pointRadius:5,pointBackgroundColor:IND,borderWidth:2.5},
+    {label:'Scotland',data:sAnn.map(v=>+(v/sAnn[0]*100).toFixed(1)),borderColor:RED,fill:false,tension:.4,pointRadius:5,pointBackgroundColor:RED,borderWidth:2.5},
+    {label:'Wales',   data:wAnn.map(v=>+(v/wAnn[0]*100).toFixed(1)),borderColor:GRN,fill:false,tension:.4,pointRadius:5,pointBackgroundColor:GRN,borderWidth:2.5},
+    {label:'N.Ireland',data:nAnn.map(v=>+(v/nAnn[0]*100).toFixed(1)),borderColor:AMB,fill:false,tension:.4,pointRadius:5,pointBackgroundColor:AMB,borderWidth:2.5},
+  ]},options:{...base,scales:{...base.scales,y:{...base.scales.y,ticks:{...base.scales.y.ticks,callback:v=>v.toFixed(0)}}}}});
+
+  const regions=[
+    {name:'England',val:'£56,000m',pct:83.6,color:IND},
+    {name:'Scotland',val:'£7,200m',pct:10.7,color:RED},
+    {name:'Wales',val:'£4,000m',pct:6.0,color:GRN},
+    {name:'Northern Ireland',val:'£2,100m',pct:3.1,color:AMB},
+  ];
+  document.getElementById('reg-bars').innerHTML=regions.map(r=>`
+    <div class="rbar">
+      <div class="rbar-head">
+        <span class="rbar-name">${r.name}</span>
+        <span class="rbar-val">${r.val}</span>
+      </div>
+      <div class="rbar-track">
+        <div class="rbar-fill" style="width:${r.pct}%;background:${r.color}"></div>
+      </div>
+      <div class="rbar-pct">${r.pct}% of UK Q4 2024 total</div>
+    </div>`).join('');
+}
+
+// ── FORECAST ─────────────────────────────────────────────────────────────────
+function buildForecast(){
+  const fL=[...MONTHS,'Jan-25','Feb-25','Mar-25'];
+  const fJ=total[48]*1.025*1.035,fF=total[49]*1.025*1.035,fMa=total[50]*1.025*1.035;
+  const hist=[...total,null,null,null];
+  const fc=[...MONTHS.map(()=>null),fJ,fF,fMa];
+  const up=[...MONTHS.map(()=>null),fJ*1.05,fF*1.05,fMa*1.05];
+  const lo=[...MONTHS.map(()=>null),fJ*0.95,fF*0.95,fMa*0.95];
+  const roll=fL.map((_,i)=>{
+    if(i<11)return null;
+    const sl=total.slice(Math.max(0,i-11),Math.min(i+1,60));
+    return sl.reduce((a,b)=>a+b,0)/sl.length;
+  });
+
+  new Chart(document.getElementById('ch-fc-main'),{type:'line',data:{labels:fL,datasets:[
+    {label:'Actual',data:hist,borderColor:IND,backgroundColor:'rgba(79,70,229,.07)',fill:true,tension:.25,pointRadius:0,borderWidth:2},
+    {label:'12M Rolling Avg',data:roll,borderColor:GRN,borderDash:[5,3],fill:false,tension:.25,pointRadius:0,borderWidth:1.5},
+    {label:'Forecast',data:fc,borderColor:AMB,borderWidth:2.5,fill:false,pointRadius:8,pointBackgroundColor:AMB,pointBorderColor:'#fff',pointBorderWidth:2},
+    {label:'Upper 95%',data:up,borderColor:'rgba(217,119,6,.3)',borderDash:[3,3],fill:false,pointRadius:0},
+    {label:'Lower 95%',data:lo,borderColor:'rgba(217,119,6,.3)',borderDash:[3,3],fill:'-1',backgroundColor:'rgba(217,119,6,.06)',pointRadius:0},
+  ]},options:{...base}});
+
+  const r12=MONTHS.map((_,i)=>{if(i<11)return null;return total.slice(i-11,i+1).reduce((a,b)=>a+b,0)/12;});
+  new Chart(document.getElementById('ch-rolling'),{type:'line',data:{labels:MONTHS,datasets:[
+    {label:'Actual',data:total,borderColor:'rgba(79,70,229,.3)',fill:false,tension:.25,pointRadius:0,borderWidth:1},
+    {label:'12M Rolling Avg',data:r12,borderColor:IND,fill:false,tension:.25,pointRadius:0,borderWidth:2.5},
+  ]},options:{...base}});
+
+  const mn=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const am=total.reduce((a,b)=>a+b,0)/total.length;
+  const si=mn.map((_,m)=>{const v=[0,1,2,3,4].map(y=>total[y*12+m]);return v.reduce((a,b)=>a+b,0)/5/am*100;});
+  new Chart(document.getElementById('ch-seasonal'),{type:'bar',data:{labels:mn,datasets:[{
+    label:'Seasonal Index',data:si,
+    backgroundColor:si.map(v=>v>=100?'rgba(22,163,74,.7)':'rgba(220,38,38,.55)'),
+    borderColor:si.map(v=>v>=100?GRN:RED),borderWidth:1,borderRadius:4,
+  }]},options:{...base,plugins:{...base.plugins,legend:{display:false}},
+    scales:{...base.scales,y:{...base.scales.y,ticks:{...base.scales.y.ticks,callback:v=>v.toFixed(0)}}}}});
+}
+
+// ── NAV ──────────────────────────────────────────────────────────────────────
+const built={};
+window.go=function(name,btn){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
+  document.querySelectorAll('.ntab').forEach(t=>t.classList.remove('on'));
+  document.getElementById('pg-'+name).classList.add('on');
+  if(btn)btn.classList.add('on');
+  if(!built[name]){
+    built[name]=true;
+    if(name==='overview')buildOverview();
+    if(name==='sectors'){buildSectors('all');buildStackedSectors();buildSectorTable();}
+    if(name==='regional')buildRegional();
+    if(name==='forecast')buildForecast();
+  }
+};
+buildOverview(); built['overview']=true;
+</script>
+</body>
+</html>
